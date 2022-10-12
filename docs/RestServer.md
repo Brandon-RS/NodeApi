@@ -4,7 +4,7 @@ This project is build using a class-based architecture.
 
 ## Project Structure
 
-The project has _app.js_ as its main file, and then there are some folders and files that contain the rest of the project. On the other hand, this project uses the [dotenv](https://www.npmjs.com/package/dotenv) library for evironment variables, and to use it, you just need create a file named _.env_ in the root of the project as you can see in the tree, and put all environment variables that you need inside it.
+The project has _app.js_ as its main file, and then there are some folders and files that contain the rest of the project.
 
 ```
 project
@@ -13,14 +13,25 @@ project
 │   package.json
 │   README.md
 │
+└───routes
+│   │   users.routes.js
+│
 └───public
 │   │   index.html
 │   │   404.html
 │
 └───models
-    │   server.js
-    │   others
+│   │   server.js
+│
+└───db
+│   │   config.js
+│
+└───controllers
+    │   users.controller.js
+
 ```
+
+On the other hand, this project uses the [dotenv](https://www.npmjs.com/package/dotenv) library for evironment variables, and to use it, you just need create a file named _.env_ in the root of the project as you can see in the tree, and put all environment variables that you need inside it.
 
 Then, for use it only need:
 
@@ -170,3 +181,134 @@ router.put("/:id", usersPut);
 ```
 
 And in your PUT function just access to `request.params` variable, or if you want to recieve some query parameters, use `request.query`.
+
+## Mongoose
+
+### Connecting to MongoDB
+
+To connect with [MongoDB](https://www.mongodb.com/) is required to use an ODM(Object Data Modeling) like [mongoose](https://mongoosejs.com/) which is the one we'll use in this example.
+
+The folder named _**db**_ contain a _**cofig.js**_ file, that is for the DB connection, the code looks like this:
+
+```js
+const mongoose = require("mongoose");
+
+const dbConnection = async () => {
+  try {
+    await mongoose.connect(process.env.MONGODB_CNN, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+
+    console.log("DB online");
+  } catch (error) {
+    console.log(error);
+    throw new Error("Error at launch DB");
+  }
+};
+
+module.exports = {
+  dbConnection,
+};
+```
+
+> **Note:** MONGODB_CNN variable looks like `MONGODB_CNN=mongodb://localhost:27017/dbname` in the **.env** file.
+
+In the _**server.js**_ file only need call to `dbConnection()` method like this:
+
+```js
+const { dbConnection } = require("../db/config");
+
+class Server {
+  constructor() {
+    // Rest of code ...
+    this.connectDB();
+  }
+
+  async connectDB() {
+    await dbConnection();
+  }
+}
+```
+
+### Creating Schemas
+
+To create a Schema with Mongoose, create a file named _**user.sj**_ in the **models** folder, and put all the code you need, here is a basic example:
+
+```js
+const { Schema, model } = require("mongoose");
+
+const UserSchema = Schema({
+  name: {
+    type: String,
+    required: [true, "Name is required."],
+  },
+  role: {
+    type: String,
+    required: [true, "Role is required."],
+    enum: ["ADMIN_ROLE", "USER_ROLE"],
+  },
+  status: {
+    type: Boolean,
+    default: true,
+  },
+});
+
+module.exports = model("User", UserSchema);
+```
+
+For more see the [mongoose](https://mongoosejs.com/docs/) oficial documentation.
+
+> **Note:** the first parameter of `model()` function is the name of your db collection, if you put "User", the collection name will be "Users" in plural.
+
+To use the Schema import it, and create an object of this. Mongoose provide some functions for work with MongoDB, eg. if you want to save an object just need to use `await object.save()`, as in the example below:
+
+```js
+const User = require("../models/user");
+
+const usersPost = async (req = request, res = response) => {
+  const { name, email, password, role } = req.body;
+  const user = new User({ name, email, password, role });
+  await user.save();
+  res.json(user);
+};
+```
+
+### Encrypting password
+
+The password never gonna be save without encrypt it, and for do this you can use some libraries. In this example we gonna use [bcrypjs](https://www.npmjs.com/package/bcryptjs), and to use it do the following:
+
+```js
+const bcryptjs = require("bcryptjs");
+
+const salt = bcryptjs.genSaltSync(10);
+user.password = bcryptjs.hashSync(password, salt);
+```
+
+### Validations
+
+For validate some fields we gonna use [express-validator](https://www.npmjs.com/package/express-validator). To use it, you need to send a middleware in the route that you need, and is important to know that the first argument of the method is the route name, but in the second argument if you don't want to use a middleware put the function with your logic, but if you need to use a middleware put it as the second argument, and your logic in the thirt argument, like this:
+
+```js
+// Without middlewares (express-validator)
+router.post("/", usersPost);
+
+// With express-validator middleware
+router.post(
+  "/",
+  [
+    // middlewares
+    check("email", "Invalid email").isEmail(),
+  ],
+  usersPost
+);
+```
+
+This middleware only prepare the errors, but not show it, to show all the errors, in your petition function do this:
+
+```js
+const errors = validationResult(req);
+if (!errors.isEmpty()) {
+  return res.status(400).json(errors);
+}
+```

@@ -1,4 +1,5 @@
 const express = require('express')
+const cors = require('cors')
 
 class Server {
 
@@ -6,23 +7,29 @@ class Server {
 
     this.app = express()
     this.port = process.env.PORT
+    this.usersPath = '/api/users'
 
+    // Middlewares
     this.middlewares()
 
+    // Application routes
     this.routes()
 
   }
 
   middlewares() {
+
+    // CORS
+    this.app.use(cors())
+
+    // Public directory
     this.app.use(express.static('public'))
   }
 
   routes() {
-    this.app.get('/api', (req, res) => {
-      res.json({
-        msg: 'Hello from Express'
-      })
-    })
+
+    this.app.use(this.usersPath, require('../routes/users.routes'))
+
   }
 
   listen() {

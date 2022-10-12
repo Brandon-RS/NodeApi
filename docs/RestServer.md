@@ -149,3 +149,24 @@ And in your route, just need do:
 ```js
 router.get("/", usersGet);
 ```
+
+### Recieve Info
+
+To recieve information from a POST, PUT, DELTE or other method, just need to access the _request_ object in its _body_ parameter, and if you want to recieve the information in JSON format, you need to use a middleware like this:
+
+```js
+  middlewares() {
+    // Read and parse of body
+    this.app.use(express.json())
+  }
+```
+
+#### Parameters
+
+To recieve a parameter from the URL, use _**:param_name**_ after your route, like this:
+
+```js
+router.put("/:id", usersPut);
+```
+
+And in your PUT function just access to `request.params` variable, or if you want to recieve some query parameters, use `request.query`.

@@ -23,6 +23,12 @@ project
 └───models
 │   │   server.js
 │
+└───middlewares
+│   │   validate_fields.js
+│
+└───helpers
+│   │   db_helpers.js
+│
 └───db
 │   │   config.js
 │
@@ -299,6 +305,7 @@ router.post(
   [
     // middlewares
     check("email", "Invalid email").isEmail(),
+    check("role", "It is not an allowed role").isIn(["ADMIN_ROLE", "USER_ROLE"]),
   ],
   usersPost
 );
@@ -311,4 +318,111 @@ const errors = validationResult(req);
 if (!errors.isEmpty()) {
   return res.status(400).json(errors);
 }
+```
+
+To decentralize the validations from a specific request and be able to reuse them in another route, you just have to create a file and move the above code into a function, and then call that function as a middleware from the route middlewares, in this example a folder called "middlewares" is created for this.
+
+```js
+const { validationResult } = require("express-validator");
+const User = require("../models/user");
+
+const validateFields = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json(errors);
+  }
+
+  next();
+};
+
+module.exports = {
+  validateFields,
+};
+```
+
+It is to important call `next()` function, don't forget to call it.
+In the same way, if you want create a custom validation, you can do it like this:
+
+In `helpers/db_helpers.js` file:
+
+```js
+const validateEmail = async (email = "") => {
+  const emailExists = await User.findOne({ email });
+  if (emailExists) {
+    throw new Error("Email registered");
+  }
+};
+
+module.exports = {
+  validateEmail,
+};
+```
+
+For use its in your route, only need to call it.
+
+```js
+router.post(
+  "/",
+  [
+    // ...
+    check("email").custom((value) => validateEmail(value)),
+    // Or only this
+    check("email").custom(validateEmail),
+    validateFields,
+  ],
+  usersPost
+);
+```
+
+To validate the role against the DB, you need to create a "role".
+
+```js
+const { Schema, model } = require("mongoose");
+
+const RoleSchema = Schema({
+  role: {
+    type: String,
+    required: [true, "Role is required"],
+  },
+});
+
+module.exports = model("role", RoleSchema);
+```
+
+And for validate the role you can do something like this:
+
+In `helpers/db_helpers.js`
+
+```js
+const validateRole = async (role) => {
+  const existsRole = await Role.findOne({ role });
+  if (!existsRole) {
+    throw new Error(`Role: ${role}, is invalid`);
+  }
+};
+```
+
+In `routes/users.route.js`:
+
+```js
+router.post(
+  "/",
+  [
+    // ...
+    check("role").custom(validateRole),
+    // ...
+  ],
+  usersPost
+);
+```
+
+### Customize JSON response
+
+In the user schema, just need to do:
+
+```js
+UserSchema.methods.toJSON = function () {
+  const { __v, password, ...user } = this.toObject();
+  return user;
+};
 ```

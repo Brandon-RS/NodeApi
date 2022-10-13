@@ -1,50 +1,51 @@
 const { request, response } = require('express')
 const bcryptjs = require('bcryptjs')
-const { validationResult } = require('express-validator')
 
 const User = require('../models/user')
 
-const usersGet = (req = request, res = response) => {
-  res.json({
-    msg: 'Get Users Controller'
-  })
+const usersGet = async (req = request, res = response) => {
+
+  const { limit = 10, from = 0 } = req.query
+  const query = { status: true }
+
+  const [total, users] = await Promise.all([
+    User.countDocuments(query),
+    User.find(query)
+      .skip(Number(from))
+      .limit(Number(limit))
+  ])
+
+  res.json({ total, users })
 }
 
 const usersPost = async (req = request, res = response) => {
 
-  const errors = validationResult(req)
-  if (!errors.isEmpty()) {
-    return res.status(400).json(errors)
-  }
-
   const { name, email, password, role } = req.body
   const user = new User({ name, email, password, role })
 
-  // [ ]: Verify if email exists
-  const emailExists = await User.findOne({ email })
-  if (emailExists) {
-    return res.status(400).json({
-      msg: 'Email registered.'
-    })
-  }
-
-  // [ ]: Encrypt password
+  // Encrypt password
   const salt = bcryptjs.genSaltSync(10)
   user.password = bcryptjs.hashSync(password, salt)
 
-  // [x]: Save on DB
+  // Save on DB
   await user.save()
 
   res.json(user)
 }
 
-const usersPut = (req = request, res = response) => {
+const usersPut = async (req = request, res = response) => {
 
   const { id } = req.params
+  const { _id, password, google, ...rest } = req.body
 
-  res.json({
-    id,
-  })
+  if (password) {
+    const salt = bcryptjs.genSaltSync()
+    rest.password = bcryptjs.hashSync(password, salt)
+  }
+
+  const user = await User.findByIdAndUpdate(id, rest)
+
+  res.json(user)
 }
 
 const usersPatch = (req = request, res = response) => {
@@ -53,10 +54,13 @@ const usersPatch = (req = request, res = response) => {
   })
 }
 
-const usersDelete = (req = request, res = response) => {
-  res.json({
-    msg: 'Delete Users Controller'
-  })
+const usersDelete = async (req = request, res = response) => {
+
+  const { id } = req.params
+
+  const user = await User.findByIdAndUpdate(id, { status: false })
+
+  res.json(user)
 }
 
 module.exports = {

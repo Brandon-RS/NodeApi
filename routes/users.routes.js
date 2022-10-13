@@ -13,7 +13,7 @@ const {
   validateEmail,
   validateRole,
   validateUserId
-} = require('../helpers/db_helpers')
+} = require('../helpers/users.helpers')
 
 const router = Router()
 

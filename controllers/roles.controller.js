@@ -1,3 +1,4 @@
+const { request } = require('express')
 const Role = require('../models/role')
 
 const rolesGet = async (req, res) => {
@@ -14,12 +15,12 @@ const rolesGet = async (req, res) => {
 
 }
 
-const rolesPost = async (req, res) => {
+const rolesPost = async (req = request, res) => {
 
   const { role, status } = req.body
 
   const roleUp = new Role({ role: role.toUpperCase(), status })
-  roleUp.save()
+  await roleUp.save()
 
   res.json(roleUp)
 

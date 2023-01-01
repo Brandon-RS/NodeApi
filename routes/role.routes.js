@@ -15,7 +15,7 @@ router.get('/', rolesGet)
 
 router.post('/', [
   check('role', 'Role is required').not().isEmpty(),
-  check('role').custom(validateRole),
+  // check('role').custom(validateRole),
   validateFields,
 ], rolesPost)
 

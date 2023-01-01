@@ -11,6 +11,7 @@ class Server {
     this.port = process.env.PORT
     this.usersPath = '/api/users'
     this.rolesPath = '/api/roles'
+    this.authPath = '/api/auth'
 
     // Connect to BB
     this.connectDB()
@@ -43,6 +44,7 @@ class Server {
 
     this.app.use(this.usersPath, require('../routes/users.routes'))
     this.app.use(this.rolesPath, require('../routes/role.routes'))
+    this.app.use(this.authPath, require('../routes/auth.routes'))
 
   }
 

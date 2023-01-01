@@ -16,4 +16,4 @@ RoleSchema.methods.toJSON = function () {
   return role
 }
 
-module.exports = model('role', RoleSchema)
+module.exports = model('Role', RoleSchema)

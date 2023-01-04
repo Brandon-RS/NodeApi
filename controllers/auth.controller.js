@@ -1,7 +1,8 @@
 const { request, response } = require("express")
 const bcryptjs = require('bcryptjs')
-const User = require("../models/user")
 
+const User = require("../models/user")
+const { generateToken } = require("../helpers/token.helpers")
 
 const login = async (req = request, res = response) => {
 
@@ -9,42 +10,39 @@ const login = async (req = request, res = response) => {
 
   try {
 
-    // [x]: verify is email exists
     const user = await User.findOne({ email })
+
     if (!user) {
       return res.status(400).json({
-        msg: 'User/Password are not correct - email'
+        msg: 'User / Password incorrect - email'
       })
     }
 
-    // [x]: is user active?
     if (!user.status) {
       return res.status(400).json({
-        msg: 'User/Password are not correct - user inactive'
+        msg: 'User / Password incorrect - inactive user'
       })
     }
 
-    // [x]: Check password
     const validPassword = bcryptjs.compareSync(password, user.password)
     if (!validPassword) {
       return res.status(400).json({
-        msg: 'User/Password are not correct - invalid password'
+        msg: 'User / Password incorrect - invalid password'
       })
     }
 
-    // [ ]: Generate JWT
+    const token = await generateToken(user._id)
 
     res.json({
-      msg: 'Login ok'
+      user,
+      token
     })
 
   } catch (error) {
-
     console.log(error)
     return res.status(500).json({
-      msg: 'Contact admin'
+      msg: 'Contact to your admin'
     })
-
   }
 
 }

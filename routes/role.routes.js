@@ -2,12 +2,12 @@ const { Router } = require('express')
 const { check } = require('express-validator')
 
 const { validateFields } = require('../middlewares/validate_fields')
-const { validateRole, validateRoleId } = require('../helpers/roles.helpers')
+const { validateRole, validateRoleId } = require('../helpers/role.helpers')
 const {
   rolesGet,
   rolesPost,
   rolesPut,
-} = require('../controllers/roles.controller')
+} = require('../controllers/role.controller')
 
 const router = Router()
 
